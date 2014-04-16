@@ -181,8 +181,6 @@ You can do something like this:
 
 =head1 SEE ALSO
 
-L<Perinci::Util>
-
 L<Perinci>
 
 =cut
