@@ -220,6 +220,10 @@ metadata.
 
 _
         },
+        install_sub => {
+            schema  => 'bool',
+            default => 1,
+        },
     },
     result => {
         schema => ['hash*' => {
@@ -304,7 +308,7 @@ sub gen_modified_sub {
     }
 
     # install
-    if ($args{output_name}) {
+    if ($args{output_name} && ($args{install_sub} // 1)) {
         my ($pkg, $leaf);
         if ($args{output_name} =~ /(.+)::(.+)/) {
             ($pkg, $leaf) = ($1, $2);
