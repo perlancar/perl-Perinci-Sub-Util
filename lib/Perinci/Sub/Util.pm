@@ -178,6 +178,13 @@ You can do something like this:
  return $err;
 
 
+=head1 TODO
+
+L<Perinci::Sub::Wrapper> will generate wrapper that modifies caller() for the
+wrapped subroutine (like in L<Hook::LexWrap>), so this module's caller() will
+not be needed in the future.
+
+
 =head1 SEE ALSO
 
 L<Perinci>
