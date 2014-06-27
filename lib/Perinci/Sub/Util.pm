@@ -346,7 +346,27 @@ Example for err() and caller():
      [200, "OK"];
  }
 
-Example for gen_modified_sub()
+Example for gen_modified_sub():
+
+ use Perinci::Sub::Util qw(gen_modified_sub);
+
+ $SPEC{list_users} = {
+     v => 1.1,
+     args => {
+         search => {},
+         is_suspended => {},
+     },
+ };
+ sub list_users { ... }
+
+ gen_modified_sub(
+     output_name => 'list_suspended_users',
+     base_name   => 'list_users',
+     remove_args => ['is_suspended'],
+     output_code => sub {
+         list_users(@_, is_suspended=>1);
+     },
+ );
 
 
 =head1 FUNCTIONS
