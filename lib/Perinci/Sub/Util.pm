@@ -325,6 +325,11 @@ sub gen_modified_sub {
     [200, "OK", {code=>$output_code, meta=>$output_meta}];
 }
 
+# TODO: for simpler cases (e.g. only remove some arguments, or preset some
+# arguments), create more convenient helper, e.g.
+#
+# gen_curried_sub('list_users', {is_suspended=>1}, ?'list_suspended_users'); # equivalent to remove args => ['is_suspended'] and create a wrapper that calls list_users with is_suspended=>1
+
 1;
 # ABSTRACT: Helper when writing functions
 
