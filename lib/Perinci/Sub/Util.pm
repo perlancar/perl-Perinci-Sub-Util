@@ -308,7 +308,7 @@ sub gen_modified_sub {
     }
 
     # install
-    if ($args{output_name} && ($args{install_sub} // 1)) {
+    if ($args{output_name}) {
         my ($pkg, $leaf);
         if ($args{output_name} =~ /(.+)::(.+)/) {
             ($pkg, $leaf) = ($1, $2);
@@ -318,7 +318,7 @@ sub gen_modified_sub {
         }
         no strict 'refs';
         no warnings 'redefine';
-        *{"$pkg\::$leaf"}       = $output_code;
+        *{"$pkg\::$leaf"}       = $output_code if $args{install_sub} // 1;
         ${"$pkg\::SPEC"}{$leaf} = $output_meta;
     }
 
