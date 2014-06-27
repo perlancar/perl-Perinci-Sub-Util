@@ -9,15 +9,17 @@ our @ISA = qw(Exporter);
 our @EXPORT_OK = qw(
                        err
                        caller
+                       gen_modified_sub
                );
 
+# DATE
 # VERSION
 
-our $STACK_TRACE;
+our %SPEC;
 
+our $STACK_TRACE;
 our @_c; # to store temporary celler() result
 our $_i; # temporary variable
-
 sub err {
     require Scalar::Util;
 
@@ -116,10 +118,187 @@ sub caller {
     return defined($n0) ? @r : $r[0];
 }
 
+$SPEC{gen_modified_sub} = {
+    v => 1.1,
+    summary => 'Generate modified metadata (and subroutine) based on another',
+    description => <<'_',
+
+Often you'll want to create another sub (and its metadata) based on another, but
+with some modifications, e.g. add/remove/rename some arguments, change summary,
+add/remove some properties, and so on.
+
+Instead of cloning the Rinci metadata and modify it manually yourself, this
+routine provides some shortcuts.
+
+You can specify base sub/metadata using `base_name` (string, subroutine name,
+either qualified or not) or `base_code` (coderef) + `base_meta` (hash).
+
+_
+    args => {
+        base_name => {
+            summary => 'Subroutine name (either qualified or not)',
+            schema => 'str*',
+            description => <<'_',
+
+If not qualified with package name, will be searched in the caller's package.
+Rinci metadata will be searched in `%SPEC` package variable.
+
+Alternatively, you can also specify `base_code` and `base_meta`.
+
+_
+        },
+        base_code => {
+            summary => 'Base subroutine code',
+            schema  => 'code*',
+            description => <<'_',
+
+If you specify this, you'll also need to specify `base_meta`.
+
+Alternatively, you can specify `base_name` instead, to let this routine search
+the base subroutine from existing Perl package.
+
+_
+        },
+        base_meta => {
+            summary => 'Base Rinci metadata',
+            schema  => 'hash*', # XXX defhash/rifunc
+        },
+        output_name => {
+            summary => 'Where to install the modified sub',
+            schema  => 'str*',
+            description => <<'_',
+
+Subroutine will be put in the specified name. If the name is not qualified with
+package name, will use caller's package. If no `output_code` is specified, the
+base subroutine reference will be assigned here.
+
+Note that this argument is optional.
+
+_
+        },
+        summary => {
+            summary => 'Summary for the mod subroutine',
+            schema  => 'str*',
+        },
+        description => {
+            summary => 'Description for the mod subroutine',
+            schema  => 'str*',
+        },
+        remove_args => {
+            summary => 'List of arguments to remove',
+            schema  => 'array*',
+        },
+        add_args => {
+            summary => 'Arguments to add',
+            schema  => 'hash*',
+        },
+        replace_args => {
+            summary => 'Arguments to add',
+            schema  => 'hash*',
+        },
+        rename_args => {
+            summary => 'Arguments to rename',
+            schema  => 'hash*',
+        },
+    },
+    result => {
+        schema => ['hash*' => {
+            keys => {
+                code => ['code*'],
+                meta => ['hash*'], # XXX defhash/risub
+            },
+        }],
+    },
+};
+sub gen_modified_sub {
+    require Function::Fallback::CoreOrPP;
+
+    my %args = @_;
+
+    # get base code/meta
+    my ($base_code, $base_meta);
+    if ($args{base_name}) {
+        my ($pkg, $leaf);
+        if ($args{base_name} =~ /(.+)::(.+)/) {
+            ($pkg, $leaf) = ($1, $2);
+        } else {
+            $pkg  = CORE::caller();
+            $leaf = $args{base_name};
+        }
+        no strict 'refs';
+        $base_code = \&{"$pkg\::$leaf"};
+        $base_meta = ${"$pkg\::SPEC"}{$leaf};
+        die "Can't find Rinci metadata for $pkg\::$leaf" unless $base_meta;
+    } elsif ($args{base_meta}) {
+        $base_meta = $args{base_meta};
+        $base_code = $args{base_code}
+            or die "Please specify base_code";
+    } else {
+        die "Please specify base_name or base_code+base_meta";
+    }
+
+    my $output_meta = Function::Fallback::CoreOrPP::clone($base_meta);
+    my $output_code = $args{output_code} // $base_code;
+
+    # modify metadata
+    for (qw/summary description/) {
+        $output_meta->{$_} = $args{$_} if $args{$_};
+    }
+    if ($args{remove_args}) {
+        delete $output_meta->{args}{$_} for @{ $args{remove_args} };
+    }
+    if ($args{add_args}) {
+        for my $k (keys %{ $args{add_args} }) {
+            my $v = $args{add_args}{$k};
+            die "Can't add arg '$k' in mod sub: already exists"
+                if $output_meta->{args}{$k};
+            $output_meta->{args}{$k} = $v;
+        }
+    }
+    if ($args{replace_args}) {
+        for my $k (keys %{ $args{replace_args} }) {
+            my $v = $args{replace_args}{$k};
+            die "Can't replace arg '$k' in mod sub: doesn't exist"
+                unless $output_meta->{args}{$k};
+            $output_meta->{args}{$k} = $v;
+        }
+    }
+    if ($args{rename_args}) {
+        for my $old (keys %{ $args{rename_args} }) {
+            my $new = $args{rename_args}{$old};
+            my $as = $output_meta->{args}{$old};
+            die "Can't rename arg '$old' in mod sub: doesn't exist" unless $as;
+            die "Can't rename arg '$old'->'$new' in mod sub: ".
+                "new name already exist" if $output_meta->{args}{$new};
+            $output_meta->{args}{$new} = $as;
+            delete $output_meta->{args}{$old};
+        }
+    }
+
+    # install
+    if ($args{output_name}) {
+        my ($pkg, $leaf);
+        if ($args{output_name} =~ /(.+)::(.+)/) {
+            ($pkg, $leaf) = ($1, $2);
+        } else {
+            $pkg  = CORE::caller();
+            $leaf = $args{output_name};
+        }
+        no strict 'refs';
+        no warnings 'redefine';
+        *{"$pkg\::$leaf"}       = $output_code;
+        ${"$pkg\::SPEC"}{$leaf} = $output_meta;
+    }
+
+    [200, "OK", {code=>$output_code, meta=>$output_meta}];
+}
+
 1;
 # ABSTRACT: Helper when writing functions
 
 =head1 SYNOPSIS
+
+Example for err() and caller():
 
  use Perinci::Sub::Util qw(err caller);
 
@@ -134,6 +313,8 @@ sub caller {
 
      [200, "OK"];
  }
+
+Example for gen_modified_sub()
 
 
 =head1 FUNCTIONS
