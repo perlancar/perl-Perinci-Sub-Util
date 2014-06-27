@@ -4,8 +4,6 @@ use 5.010001;
 use strict;
 use warnings;
 
-use Scalar::Util qw (looks_like_number);
-
 require Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT_OK = qw(
@@ -21,6 +19,7 @@ our @_c; # to store temporary celler() result
 our $_i; # temporary variable
 
 sub err {
+    require Scalar::Util;
 
     # get information about caller
     my @caller = CORE::caller(1);
@@ -36,7 +35,7 @@ sub err {
         if ($ref eq 'ARRAY') { $prev = $_ }
         elsif ($ref eq 'HASH') { $meta = $_ }
         elsif (!$ref) {
-            if (looks_like_number($_)) {
+            if (Scalar::Util::looks_like_number($_)) {
                 $status = $_;
             } else {
                 $msg = $_;
