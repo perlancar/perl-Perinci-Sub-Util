@@ -200,6 +200,26 @@ _
             summary => 'Arguments to rename',
             schema  => 'hash*',
         },
+        modify_args => {
+            summary => 'Arguments to modify',
+            description => <<'_',
+
+For each argument you can specify a coderef. The coderef will receive the
+argument ($arg_spec) and is expected to modify the argument specification.
+
+_
+            schema  => 'hash*',
+        },
+        modify_meta => {
+            summary => 'Specify code to modify metadata',
+            schema  => 'code*',
+            description => <<'_',
+
+Code will be called with arguments ($meta) where $meta is the cloned Rinci
+metadata.
+
+_
+        },
     },
     result => {
         schema => ['hash*' => {
@@ -273,6 +293,14 @@ sub gen_modified_sub {
             $output_meta->{args}{$new} = $as;
             delete $output_meta->{args}{$old};
         }
+    }
+    if ($args{modify_args}) {
+        for (keys %{ $args{modify_args} }) {
+            $args{modify_args}{$_}->($output_meta->{args}{$_});
+        }
+    }
+    if ($args{modify_meta}) {
+        $args{modify_meta}->($output_meta);
     }
 
     # install

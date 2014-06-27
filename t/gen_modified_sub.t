@@ -34,6 +34,8 @@ my $res = gen_modified_sub(
     add_args     => {x => {_x=>1}},
     replace_args => {c => {_c=>2}},
     rename_args  => {d => 'j'},
+    modify_args  => {e => sub { my $as=shift; $as->{_e}=2 }},
+    modify_meta  => sub { my $m=shift; $m->{_mod}=1 },
 );
 
 is($res->[0], 200);
@@ -45,10 +47,11 @@ is_deeply($meta, {
     description => 'Mod description',
     args => {
         c => {_c=>2},
-        e => {_e=>1},
+        e => {_e=>2},
         j => {_d=>1},
         x => {_x=>1},
     },
+    _mod => 1,
 }) or diag explain $meta;
 
 # XXX test install (output_name)
