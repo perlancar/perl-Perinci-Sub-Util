@@ -1,5 +1,8 @@
 package Perinci::Sub::Util;
 
+# DATE
+# VERSION
+
 use 5.010001;
 use strict;
 use warnings;
@@ -10,10 +13,9 @@ our @EXPORT_OK = qw(
                        err
                        caller
                        gen_modified_sub
+                       warn_err
+                       die_err
                );
-
-# DATE
-# VERSION
 
 our %SPEC;
 
@@ -330,6 +332,20 @@ sub gen_modified_sub {
 #
 # gen_curried_sub('list_users', {is_suspended=>1}, ?'list_suspended_users'); # equivalent to remove args => ['is_suspended'] and create a wrapper that calls list_users with is_suspended=>1
 
+sub warn_err {
+    require Carp;
+
+    my $res = err(@_);
+    Carp::carp("ERROR $res->[0]: $res->[1]");
+}
+
+sub die_err {
+    require Carp;
+
+    my $res = err(@_);
+    Carp::croak("ERROR $res->[0]: $res->[1]");
+}
+
 1;
 # ABSTRACT: Helper when writing functions
 
@@ -373,6 +389,12 @@ Example for gen_modified_sub():
      },
  );
 
+Example for die_err() and warn_err():
+
+ use Perinci::Sub::Util qw(warn_err die_err);
+ warn_err(403, "Forbidden");
+ die_err(403, "Forbidden");
+
 
 =head1 FUNCTIONS
 
@@ -403,6 +425,20 @@ Examples:
                            #     {logs=>[...], prev=>[404, "Prev error"]}]
 
 Will put C<stack_trace> in logs only if C<Carp::Always> module is loaded.
+
+=head2 warn_err(...)
+
+This is a shortcut for:
+
+ $res = err(...);
+ warn "ERROR $res->[0]: $res->[1]";
+
+=head2 die_err(...)
+
+This is a shortcut for:
+
+ $res = err(...);
+ die "ERROR $res->[0]: $res->[1]";
 
 
 =head1 FAQ
