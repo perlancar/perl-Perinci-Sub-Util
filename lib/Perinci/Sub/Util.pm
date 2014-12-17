@@ -19,6 +19,11 @@ our @EXPORT_OK = qw(
 
 our %SPEC;
 
+$SPEC{':package'} = {
+    v => 1.1,
+    summary => 'Helper when writing functions',
+};
+
 our $STACK_TRACE;
 our @_c; # to store temporary celler() result
 our $_i; # temporary variable
@@ -347,7 +352,7 @@ sub die_err {
 }
 
 1;
-# ABSTRACT: Helper when writing functions
+# ABSTRACT:
 
 =head1 SYNOPSIS
 
