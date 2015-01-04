@@ -183,6 +183,15 @@ Note that this argument is optional.
 
 _
         },
+        output_code => {
+            summary => 'Code for the modified sub',
+            schema  => 'code*',
+            description => <<'_',
+
+If not specified will use `base_code` (which will then be required).
+
+_
+        },
         summary => {
             summary => 'Summary for the mod subroutine',
             schema  => 'str*',
