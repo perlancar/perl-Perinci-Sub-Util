@@ -410,7 +410,7 @@ Example for die_err() and warn_err():
  die_err(403, "Forbidden");
 
 
-=head1 FUNCTIONS
+=head1 append:FUNCTIONS
 
 =head2 caller([ $n ])
 
