@@ -1,5 +1,10 @@
 Revision history for Perinci-Sub-Util
 
+0.43    2015-12-25 (PERLANCAR)
+
+        - Add module: Perinci::Sub::Util::PropertyModule.
+
+
 0.42    2015-09-04 (PERLANCAR)
 
 	- No functional changes.
@@ -29,5 +34,3 @@ Revision history for Perinci-Sub-Util
          - First release. Split from Perinci-Util dist.
 
          - Add function: gen_modified_sub().
-
-
