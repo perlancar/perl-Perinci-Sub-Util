@@ -1,5 +1,11 @@
 Revision history for Perinci-Sub-Util
 
+0.44    2015-12-31 (PERLANCAR)
+
+	- Split Perinci::Sub::Util::PropertyModule to its own dist to
+	  resolve circular dep problem [RT#110777].
+
+
 0.43    2015-12-25 (PERLANCAR)
 
         - Add module: Perinci::Sub::Util::PropertyModule.
