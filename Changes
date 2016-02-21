@@ -1,5 +1,10 @@
 Revision history for Perinci-Sub-Util
 
+0.45    2016-02-21 (PERLANCAR)
+
+	- Add function: gen_curried_sub().
+
+
 0.44    2015-12-31 (PERLANCAR)
 
 	- Split Perinci::Sub::Util::PropertyModule to its own dist to
