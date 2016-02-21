@@ -12,9 +12,10 @@ our @ISA = qw(Exporter);
 our @EXPORT_OK = qw(
                        err
                        caller
-                       gen_modified_sub
                        warn_err
                        die_err
+                       gen_modified_sub
+                       gen_curried_sub
                );
 
 our %SPEC;
@@ -99,6 +100,20 @@ sub err {
 
     #die;
     [$status, $msg, undef, $meta];
+}
+
+sub warn_err {
+    require Carp;
+
+    my $res = err(@_);
+    Carp::carp("ERROR $res->[0]: $res->[1]");
+}
+
+sub die_err {
+    require Carp;
+
+    my $res = err(@_);
+    Carp::croak("ERROR $res->[0]: $res->[1]");
 }
 
 sub caller {
@@ -341,23 +356,90 @@ sub gen_modified_sub {
     [200, "OK", {code=>$output_code, meta=>$output_meta}];
 }
 
-# TODO: for simpler cases (e.g. only remove some arguments, or preset some
-# arguments), create more convenient helper, e.g.
-#
-# gen_curried_sub('list_users', {is_suspended=>1}, ?'list_suspended_users'); # equivalent to remove args => ['is_suspended'] and create a wrapper that calls list_users with is_suspended=>1
+$SPEC{gen_curried_sub} = {
+    v => 1.1,
+    summary => 'Generate curried subroutine (and its metadata)',
+    description => <<'_',
 
-sub warn_err {
-    require Carp;
+This is a more convenient helper than `gen_modified_sub` if you want to create a
+new subroutine that has some of its arguments preset (so they no longer need to
+be present in the new metadata).
 
-    my $res = err(@_);
-    Carp::carp("ERROR $res->[0]: $res->[1]");
-}
+For more general needs of modifying a subroutine (e.g. add some arguments,
+modify some arguments, etc) use `gen_modified_sub`.
 
-sub die_err {
-    require Carp;
+_
+    args => {
+        base_name => {
+            summary => 'Subroutine name (either qualified or not)',
+            schema => 'str*',
+            description => <<'_',
 
-    my $res = err(@_);
-    Carp::croak("ERROR $res->[0]: $res->[1]");
+If not qualified with package name, will be searched in the caller's package.
+Rinci metadata will be searched in `%SPEC` package variable.
+
+_
+            req => 1,
+            pos => 0,
+        },
+        set_args => {
+            summary => 'Arguments to set',
+            schema  => 'hash*',
+        },
+        output_name => {
+            summary => 'Where to install the modified sub',
+            schema  => 'str*',
+            description => <<'_',
+
+Subroutine will be put in the specified name. If the name is not qualified with
+package name, will use caller's package.
+
+_
+            req => 1,
+            pos => 2,
+        },
+    },
+    args_as => 'array',
+    result_naked => 1,
+};
+sub gen_curried_sub {
+    my ($base_name, $set_args, $output_name) = @_;
+
+    my $caller = CORE::caller();
+
+    my ($base_pkg, $base_leaf);
+    if ($base_name =~ /(.+)::(.+)/) {
+        ($base_pkg, $base_leaf) = ($1, $2);
+    } else {
+        $base_pkg  = $caller;
+        $base_leaf = $base_name;
+    }
+
+    my ($output_pkg, $output_leaf);
+    if ($output_name =~ /(.+)::(.+)/) {
+        ($output_pkg, $output_leaf) = ($1, $2);
+    } else {
+        $output_pkg  = $caller;
+        $output_leaf = $output_name;
+    }
+
+    my $base_sub = \&{"$base_pkg\::$base_leaf"};
+
+    my $res = gen_modified_sub(
+        base_name   => "$base_pkg\::$base_leaf",
+        output_name => "$output_pkg\::$output_leaf",
+        output_code => sub {
+            no strict 'refs';
+            $base_sub->(@_, %$set_args);
+        },
+        remove_args => [keys %$set_args],
+        install => 1,
+    );
+
+    die "Can't generate curried sub: $res->[0] - $res->[1]"
+        unless $res->[0] == 200;
+
+    1;
 }
 
 1;
@@ -381,6 +463,12 @@ Example for err() and caller():
      [200, "OK"];
  }
 
+Example for die_err() and warn_err():
+
+ use Perinci::Sub::Util qw(warn_err die_err);
+ warn_err(403, "Forbidden");
+ die_err(403, "Forbidden");
+
 Example for gen_modified_sub():
 
  use Perinci::Sub::Util qw(gen_modified_sub);
@@ -403,11 +491,21 @@ Example for gen_modified_sub():
      },
  );
 
-Example for die_err() and warn_err():
+Example for gen_curried_sub():
 
- use Perinci::Sub::Util qw(warn_err die_err);
- warn_err(403, "Forbidden");
- die_err(403, "Forbidden");
+ use Perinci::Sub::Util qw(gen_curried_sub);
+
+ $SPEC{list_users} = {
+     v => 1.1,
+     args => {
+         search => {},
+         is_suspended => {},
+     },
+ };
+ sub list_users { ... }
+
+ # simpler/shorter than gen_modified_sub, but can be used for currying only
+ gen_curried_sub('list_users', {is_suspended=>1}, 'list_suspended_users');
 
 
 =head1 append:FUNCTIONS
