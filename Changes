@@ -1,5 +1,3 @@
-Revision history for Perinci-Sub-Util
-
 0.45    2016-02-21 (PERLANCAR)
 
 	- Add function: gen_curried_sub().
