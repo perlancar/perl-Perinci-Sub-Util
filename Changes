@@ -1,3 +1,10 @@
+0.46    2017-01-31 (PERLANCAR)
+
+	- Add module: Perinci::Sub::Util::Args with routines: args_by_tags,
+	  argnames_by_tag, func_args_by_tag, func_argnames_by_tag,
+	  call_with_its_args.
+
+
 0.45    2016-02-21 (PERLANCAR)
 
 	- Add function: gen_curried_sub().
