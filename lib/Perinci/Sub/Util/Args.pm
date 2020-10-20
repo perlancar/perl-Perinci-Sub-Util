@@ -42,7 +42,7 @@ sub argnames_by_tag {
 
     my @res;
     my $args_prop = $meta->{args} or return ();
-    my $neg = 1 if $tag =~ s/\A!//;
+    my $neg; $neg = 1 if $tag =~ s/\A!//;
     for my $argname (keys %$args_prop) {
         my $argspec = $args_prop->{$argname};
         if ($neg) {

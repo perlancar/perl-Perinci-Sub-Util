@@ -1,3 +1,8 @@
+0.470   2020-10-20  Released-By: PERLANCAR; Urgency: medium
+
+	- gen_modified_sub: Add wrap_code argument.
+
+
 0.46    2017-01-31  Released-By: PERLANCAR
 
 	- Add module: Perinci::Sub::Util::Args with routines: args_by_tags,
