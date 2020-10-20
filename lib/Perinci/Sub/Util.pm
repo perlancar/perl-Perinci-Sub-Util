@@ -1,6 +1,8 @@
 package Perinci::Sub::Util;
 
+# AUTHORITY
 # DATE
+# DIST
 # VERSION
 
 use 5.010001;
@@ -203,7 +205,22 @@ _
             schema  => 'code*',
             description => <<'_',
 
-If not specified will use `base_code` (which will then be required).
+Alternatively you can use `wrap_code`. If both are not specified, will use
+`base_code` (which will then be required) as the modified subroutine's code.
+
+_
+        },
+        wrap_code => {
+            summary => 'Wrapper to generate the modified sub',
+            schema  => 'code*',
+            description => <<'_',
+
+The modified sub will become:
+
+    sub { wrap_code->(base_code, @_) }
+
+Alternatively you can use `output_code`. If both are not specified, will use
+`base_code` (which will then be required) as the modified subroutine's code.
 
 _
         },
@@ -293,7 +310,8 @@ sub gen_modified_sub {
     }
 
     my $output_meta = Function::Fallback::CoreOrPP::clone($base_meta);
-    my $output_code = $args{output_code} // $base_code;
+    my $output_code = ($args{wrap_code} ? sub { $args{wrap_code}->($base_code, @_) } : undef) //
+        $args{output_code} // $base_code;
 
     # modify metadata
     for (qw/summary description/) {
