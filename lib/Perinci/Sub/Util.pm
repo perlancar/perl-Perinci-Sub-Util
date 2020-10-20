@@ -192,12 +192,13 @@ _
             schema  => 'str*',
             description => <<'_',
 
-Subroutine will be put in the specified name. If the name is not qualified with
-package name, will use caller's package. If no `output_code` is specified, the
-base subroutine reference will be assigned here.
+Output subroutine will be put in the specified name. If the name is not
+qualified with package name, will use caller's package. If the name is not
+specified, the base name will be used and must not be from the caller's package.
 
 Note that this argument is optional.
 
+To prevent installing subroutine, set `install_sub` to false.
 _
         },
         output_code => {
@@ -289,18 +290,20 @@ sub gen_modified_sub {
 
     # get base code/meta
     my ($base_code, $base_meta);
+    my ($base_pkg, $base_leaf);
     if ($args{base_name}) {
-        my ($pkg, $leaf);
         if ($args{base_name} =~ /(.+)::(.+)/) {
-            ($pkg, $leaf) = ($1, $2);
+            ($base_pkg, $base_leaf) = ($1, $2);
         } else {
-            $pkg  = CORE::caller();
-            $leaf = $args{base_name};
+            $base_pkg  = CORE::caller();
+            $base_leaf = $args{base_name};
         }
-        no strict 'refs';
-        $base_code = \&{"$pkg\::$leaf"};
-        $base_meta = ${"$pkg\::SPEC"}{$leaf};
-        die "Can't find Rinci metadata for $pkg\::$leaf" unless $base_meta;
+        {
+            no strict 'refs';
+            $base_code = \&{"$base_pkg\::$base_leaf"};
+            $base_meta = ${"$base_pkg\::SPEC"}{$base_leaf};
+        }
+        die "Can't find Rinci metadata for $base_pkg\::$base_leaf" unless $base_meta;
     } elsif ($args{base_meta}) {
         $base_meta = $args{base_meta};
         $base_code = $args{base_code}
@@ -357,18 +360,23 @@ sub gen_modified_sub {
     }
 
     # install
-    if ($args{output_name}) {
-        my ($pkg, $leaf);
-        if ($args{output_name} =~ /(.+)::(.+)/) {
-            ($pkg, $leaf) = ($1, $2);
-        } else {
-            $pkg  = CORE::caller();
-            $leaf = $args{output_name};
-        }
+    my ($output_pkg, $output_leaf);
+    if (!defined $args{output_name}) {
+        $output_pkg  = CORE::caller();
+        $output_leaf = $base_leaf;
+        return [412, "Won't override $base_pkg\::$base_leaf"]
+            if $base_pkg eq $output_pkg;
+    } elsif ($args{output_name} =~ /(.+)::(.+)/) {
+        ($output_pkg, $output_leaf) = ($1, $2);
+    } else {
+        $output_pkg  = CORE::caller();
+        $output_leaf = $args{output_name};
+    }
+    {
         no strict 'refs';
         no warnings 'redefine';
-        *{"$pkg\::$leaf"}       = $output_code if $args{install_sub} // 1;
-        ${"$pkg\::SPEC"}{$leaf} = $output_meta;
+        *{"$output_pkg\::$output_leaf"} = $output_code if $args{install_sub} // 1;
+        ${"$output_pkg\::SPEC"}{$output_leaf} = $output_meta;
     }
 
     [200, "OK", {code=>$output_code, meta=>$output_meta}];
@@ -410,11 +418,11 @@ _
             description => <<'_',
 
 Subroutine will be put in the specified name. If the name is not qualified with
-package name, will use caller's package.
+package name, will use caller's package. If the name is not specified, will use
+the base name which must not be in the caller's package.
 
 _
-            req => 1,
-            pos => 2,
+            pos => 1,
         },
     },
     args_as => 'array',
@@ -434,7 +442,11 @@ sub gen_curried_sub {
     }
 
     my ($output_pkg, $output_leaf);
-    if ($output_name =~ /(.+)::(.+)/) {
+    if (!defined $output_name) {
+        die "Won't override $base_pkg\::$base_leaf" if $base_pkg eq $caller;
+        $output_pkg = $caller;
+        $output_leaf = $base_leaf;
+    } elsif ($output_name =~ /(.+)::(.+)/) {
         ($output_pkg, $output_leaf) = ($1, $2);
     } else {
         $output_pkg  = $caller;
