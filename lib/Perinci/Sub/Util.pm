@@ -1,16 +1,17 @@
 package Perinci::Sub::Util;
 
+use 5.010001;
+use strict;
+use warnings;
+use Log::ger;
+
+use Exporter qw(import);
+
 # AUTHORITY
 # DATE
 # DIST
 # VERSION
 
-use 5.010001;
-use strict;
-use warnings;
-
-require Exporter;
-our @ISA = qw(Exporter);
 our @EXPORT_OK = qw(
                        err
                        caller
@@ -169,6 +170,8 @@ Rinci metadata will be searched in `%SPEC` package variable.
 
 Alternatively, you can also specify `base_code` and `base_meta`.
 
+Either `base_name` or `base_code` + `base_meta` are required.
+
 _
         },
         base_code => {
@@ -274,6 +277,10 @@ _
             default => 1,
         },
     },
+    args_rels => {
+        req_one => [qw/base_name base_code/],
+        choose_all => [qw/base_code base_meta/],
+    },
     result => {
         schema => ['hash*' => {
             keys => {
@@ -289,17 +296,18 @@ sub gen_modified_sub {
     my %args = @_;
 
     # get base code/meta
+    my $caller_pkg = CORE::caller();
     my ($base_code, $base_meta);
     my ($base_pkg, $base_leaf);
     if ($args{base_name}) {
         if ($args{base_name} =~ /(.+)::(.+)/) {
             ($base_pkg, $base_leaf) = ($1, $2);
         } else {
-            $base_pkg  = CORE::caller();
+            $base_pkg  = $caller_pkg;
             $base_leaf = $args{base_name};
         }
         {
-            no strict 'refs';
+            no strict 'refs'; ## no critic: TestingAndDebugging::ProhibitNoStrict
             $base_code = \&{"$base_pkg\::$base_leaf"};
             $base_meta = ${"$base_pkg\::SPEC"}{$base_leaf};
         }
@@ -362,19 +370,20 @@ sub gen_modified_sub {
     # install
     my ($output_pkg, $output_leaf);
     if (!defined $args{output_name}) {
-        $output_pkg  = CORE::caller();
+        $output_pkg  = $caller_pkg;
         $output_leaf = $base_leaf;
         return [412, "Won't override $base_pkg\::$base_leaf"]
             if $base_pkg eq $output_pkg;
     } elsif ($args{output_name} =~ /(.+)::(.+)/) {
         ($output_pkg, $output_leaf) = ($1, $2);
     } else {
-        $output_pkg  = CORE::caller();
+        $output_pkg  = $caller_pkg;
         $output_leaf = $args{output_name};
     }
     {
-        no strict 'refs';
-        no warnings 'redefine';
+        no strict 'refs'; ## no critic: TestingAndDebugging::ProhibitNoStrict
+        no warnings 'redefine', 'once';
+        log_trace "Installing modified sub to $output_pkg\::$output_leaf ...";
         *{"$output_pkg\::$output_leaf"} = $output_code if $args{install_sub} // 1;
         ${"$output_pkg\::SPEC"}{$output_leaf} = $output_meta;
     }
@@ -459,7 +468,7 @@ sub gen_curried_sub {
         base_name   => "$base_pkg\::$base_leaf",
         output_name => "$output_pkg\::$output_leaf",
         output_code => sub {
-            no strict 'refs';
+            no strict 'refs'; ## no critic: TestingAndDebugging::ProhibitNoStrict
             $base_sub->(@_, %$set_args);
         },
         remove_args => [keys %$set_args],
