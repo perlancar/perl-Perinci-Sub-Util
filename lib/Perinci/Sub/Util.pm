@@ -420,6 +420,8 @@ _
         set_args => {
             summary => 'Arguments to set',
             schema  => 'hash*',
+            req => 1,
+            pos => 1,
         },
         output_name => {
             summary => 'Where to install the modified sub',
@@ -431,7 +433,7 @@ package name, will use caller's package. If the name is not specified, will use
 the base name which must not be in the caller's package.
 
 _
-            pos => 1,
+            pos => 2,
         },
     },
     args_as => 'array',
