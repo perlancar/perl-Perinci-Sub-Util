@@ -1,14 +1,16 @@
 package Perinci::Sub::Util::Sort;
 
-# DATE
-# VERSION
-
 use 5.010;
 use strict;
 use warnings;
 
-require Exporter;
-our @ISA = qw(Exporter);
+use Exporter qw(import);
+
+# AUTHORITY
+# DATE
+# DIST
+# VERSION
+
 our @EXPORT_OK = qw(
                        sort_args
                );

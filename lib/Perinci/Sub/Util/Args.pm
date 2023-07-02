@@ -1,13 +1,16 @@
 package Perinci::Sub::Util::Args;
 
-# DATE
-# VERSION
-
 use 5.010001;
 use strict 'subs', 'vars';
 use warnings;
 
 use Exporter qw(import);
+
+# AUTHORITY
+# DATE
+# DIST
+# VERSION
+
 our @EXPORT_OK = qw(
                        args_by_tag
                        argnames_by_tag
