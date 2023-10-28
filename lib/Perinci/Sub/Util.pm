@@ -160,6 +160,11 @@ either qualified or not) or `base_code` (coderef) + `base_meta` (hash).
 
 _
     args => {
+        die => {
+            summary => 'Die upon failure',
+            schema => 'bool*',
+        },
+
         base_name => {
             summary => 'Subroutine name (either qualified or not)',
             schema => 'str*',
@@ -372,8 +377,13 @@ sub gen_modified_sub {
     if (!defined $args{output_name}) {
         $output_pkg  = $caller_pkg;
         $output_leaf = $base_leaf;
-        return [412, "Won't override $base_pkg\::$base_leaf"]
-            if $base_pkg eq $output_pkg;
+        if ($base_pkg eq $output_pkg) {
+            if ($args{die}) {
+                die "Won't override $base_pkg\::$base_leaf";
+            } else {
+                return [412, "Won't override $base_pkg\::$base_leaf"];
+            }
+        }
     } elsif ($args{output_name} =~ /(.+)::(.+)/) {
         ($output_pkg, $output_leaf) = ($1, $2);
     } else {
@@ -466,7 +476,8 @@ sub gen_curried_sub {
 
     my $base_sub = \&{"$base_pkg\::$base_leaf"};
 
-    my $res = gen_modified_sub(
+    gen_modified_sub(
+        die         => 1,
         base_name   => "$base_pkg\::$base_leaf",
         output_name => "$output_pkg\::$output_leaf",
         output_code => sub {
@@ -476,11 +487,6 @@ sub gen_curried_sub {
         remove_args => [keys %$set_args],
         install => 1,
     );
-
-    die "Can't generate curried sub: $res->[0] - $res->[1]"
-        unless $res->[0] == 200;
-
-    1;
 }
 
 1;
